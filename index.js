@@ -2,34 +2,52 @@
 // console.log('Hello world');
 
 const http = require("http");
-const {read, write} = require("./utils");
-
-// console.log(newData);
+const url = require("url");
+const queryString = require("querystring");
+const { read, write } = require("./utils");
 
 const hostname = "localhost";
 const port = 3000;
 
-const server = http.createServer((request, response) => {
-    switch (request.url) {
+    const server = http.createServer((request, response) => {
+    const parsedUrl = url.parse(request.url);
+    const { id } = queryString.parse(parsedUrl.query);  // деструкторизация сразу достали id
+
+    response.setHeader("Access-Control-Allow-Origin", "*");
+
+    const messages = read("messages");
+    switch (parsedUrl.pathname) {
         case "/add":
-            const massages = read("massages");
+        write("messages", [
+            ...messages,
+            {
+            id: messages[messages.length - 1].id + 1,
+            name: "No-name",
+            },
+        ]);
+        break;
+        case "/delete":
+        const newArray = [...messages];
+        if (id) {
+            const elementIndex = newArray.findIndex((el) => el.id === Number(id));
 
-            const newData = [
-                ...massages,
-                {
-                    id: massages[massages.length - 1].id + 1,
-                    name: "No-name",
-                },
-            ];
-            write("massages", newData);
-            break;
-    }        
-    response.end(JSON.stringify(read("massages")));
-});
+            if (elementIndex !== -1) {
+            newArray.splice(elementIndex, 1);
+            }
+        } else {
+            newArray.splice(newArray.length - 1, 1);
+        }
 
-server.listen(port, hostname, () => {
-    console.log(`Server is listening ${hostname} : ${port}`)
-});
+        write("messages", newArray);
+    }
+
+    response.end(JSON.stringify(read("messages")));
+    });
+
+    server.listen(port, hostname, () => {
+    console.log(`Server is listening ${hostname}:${port}`);
+    });
+
 
 // const db = JSON.parse(
 //     fs.readFileSync("./massages.json", {
